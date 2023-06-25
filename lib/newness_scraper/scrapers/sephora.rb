@@ -164,7 +164,6 @@ module NewnessScraper
           ingredients_html = accordian_nokogiri.parent.next_sibling.children.first.inner_html
           ingredients_string = ingredients_html.gsub("<div>", "").gsub("</div", "")
           parts = ingredients_string.split("<br>")
-          # binding.pry unless parts.find_index { |part| part.include?("Clean at Sephora") }
           parts.each do |part|
             break unless part.strip[0] == "-"
 
@@ -172,16 +171,18 @@ module NewnessScraper
           end
           idx = parts.find_index { |part| part.include?("Clean at Sephora") }
           starting_idx = idx ? idx + 1 : 0
+          parts[starting_idx] = parts[starting_idx].gsub("1, 4, Dioxane", "1'4 Dioxane")
           full_ingredients = parts[starting_idx].split(",").map do |i|
             i = i.split("(").first
             i = i.gsub(" and derivatives", "").gsub(" and related compounds", "")
+            i = i.gsub(/\(((\w+)( |))*\)/, "")
+            i = i.gsub("(", "").gsub(")", "")
             i = i.gsub(/(under \d%)/, "")
             i.strip
           end.uniq
 
           product[:ingredients] += full_ingredients
         end
-        binding.pry
 
         data.each do |product|
           next if Product[name: product[:name], source_id: @source.id]
@@ -189,13 +190,21 @@ module NewnessScraper
           brand = Brand[name: product[:brand]]
           brand = Brand.create(name: product[:brand]) if brand.nil?
 
-          p = Product.new({
-                            name: product[:name],
-                            brand_id: brand.id,
-                            price: product[:price]&.gsub("$", "")&.to_f,
-                            source_id: @source.id
-                          })
-          p.save
+          p = Product.create({
+                               name: product[:name],
+                               brand_id: brand.id,
+                               price: product[:price]&.gsub("$", "")&.to_f,
+                               source_id: @source.id
+                             })
+          product[:ingredients].each do |ingredient|
+            db_ingredient = Ingredient[name: ingredient]
+            db_ingredient ||= Ingredient.create(name: ingredient)
+
+            db_product_ingredient =
+              ProductIngredient[product_id: p.id, ingredient_id: db_ingredient.id]
+            ProductIngredient.create(product_id: p.id,
+                                     ingredient_id: db_ingredient.id)
+          end
         end
 
         nil

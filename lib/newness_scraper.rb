@@ -23,9 +23,11 @@ module NewnessScraper
 
     def setup_db
       @db = Sequel.connect(DATABASE_URL)
+      db.drop_table(:product_ingredients) if db.tables.include?(:product_ingredients)
       db.drop_table(:products) if db.tables.include?(:products)
       db.drop_table(:brands) if db.tables.include?(:brands)
       db.drop_table(:sources) if db.tables.include?(:sources)
+      db.drop_table(:ingredients) if db.tables.include?(:ingredients)
 
       unless db.tables.include?(:brands)
         db.create_table(:brands) do
@@ -48,6 +50,21 @@ module NewnessScraper
           BigDecimal :price, size: [8, 2]
           foreign_key :brand_id, :brands, key: :id, null: false
           foreign_key :source_id, :sources, key: :id, null: false
+        end
+      end
+
+      unless db.tables.include?(:ingredients)
+        db.create_table(:ingredients) do
+          primary_key :id
+          String :name
+        end
+      end
+
+      unless db.tables.include?(:product_ingredients)
+        db.create_table(:product_ingredients) do
+          primary_key :id
+          foreign_key :product_id, :products, key: :id, null: false
+          foreign_key :ingredient_id, :ingredients, key: :id, null: false
         end
       end
 
