@@ -179,9 +179,12 @@ module SephoraScraper
           # Sephora has an extra space in the data attribute here
           carousel = document.at_css("[data-comp='Carousel ']")
           # On a rare occasion, carousel is nil
-          product[:images] = carousel ? carousel.css('button').map do |button|
-            button.child.child.child.attribute('src')&.value
-          end.compact : []
+          product[:images] =
+            if carousel
+              carousel.css('button').map { |button| button.child.child.child.attribute('src')&.value }.compact
+            else
+              []
+            end
           # Arbitrary sleep
           Util.random_mouse_move(browser)
           sleep 1
@@ -196,15 +199,15 @@ module SephoraScraper
           if accordian
             accordian.click
             ingredients_html = accordian_nokogiri.parent.next_sibling.children.first.inner_html
-            ingredients_string = ingredients_html.gsub('<div>', '').gsub('</div', '')
+            ingredients_string = ingredients_html.gsub('<div>', '').gsub('</div>', '')
+            ingredients_string = ingredients_string.gsub('<b>', '').gsub('</b>', '')
             parts = ingredients_string.split('<br>')
             parts.each do |part|
               break unless part.strip[0] == '-'
-  
+
               product[:ingredients] << part[1..].split(':').first
             end
             full_ingredients = cleanup_ingredient_parts(parts)
-  
             product[:ingredients] += full_ingredients
           end
 
@@ -241,6 +244,7 @@ module SephoraScraper
         return_value
       end
 
+      # TODO: unify with #get.
       def threaded_sephora_scraper(&script)
         return_value = nil
         # Run browser in seperate thread so script can continue
@@ -262,8 +266,7 @@ module SephoraScraper
         end
         process_thread.join
         close_modal_thread.join
-        timeout_thread.kill
-        close_modal_timeout_thread.kill
+        timeout_thread.killaaaaaaaaaaaaa
 
         return_value
       end
@@ -313,36 +316,41 @@ module SephoraScraper
       # https://github.com/rails/rails/blob/2d6f523ba5d47a03ad3e3205c24a3fa13a3b8ad1/actionview/lib/action_view/helpers/javascript_helper.rb#L28
       def escape_javascript(js)
         js = js.to_s
-        result = if js.nil? || js.empty?
-                   ''
-                 else
-                   js.gsub(%r{(\\|</|\r\n|\342\200\250|\342\200\251|[\n\r"']|[`]|[$])}u, js_escape_map)
-                 end
+        if js.nil? || js.empty?
+          ''
+        else
+          js.gsub(%r{(\\|</|\r\n|\342\200\250|\342\200\251|[\n\r"']|[`]|[$])}u, js_escape_map)
+        end
       end
 
       # This is a possible alternate way of fetching the image, using javascript via the CDP protocol:
-      # Browser.evaluate_async(get_image_js(image_url, request.headers.to_json), 5)
-      def get_image_js(image_url, headers_json)
-        escaped_headers_json = escape_javascript(headers_json)
-        <<~JS
-          async function fetchImage() {
-            const response = await fetch("#{image_url}", {
-              headers: JSON.parse("#{escaped_headers_json}")
-            });
-            const blob = await response.blob();
-            const imageBase64 = await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result);
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
-            });
+      #
+      # image_url = image_url.split('?').first # Remove size params, because we want the full size image
+      # # Make sure cookies are sent with the request
+      # image_base64 = Browser.evaluate_async(get_image_js(image_url, request.headers.to_json), 5)
+      # File.write('test.jpg', Base64.decode64(image_base64))
+      #
+      # def get_image_js(image_url, headers_json)
+      #   escaped_headers_json = escape_javascript(headers_json)
+      #   <<~JS
+      #     async function fetchImage() {
+      #       const response = await fetch("#{image_url}", {
+      #         headers: JSON.parse("#{escaped_headers_json}")
+      #       });
+      #       const blob = await response.blob();
+      #       const imageBase64 = await new Promise((resolve, reject) => {
+      #         const reader = new FileReader();
+      #         reader.onloadend = () => resolve(reader.result);
+      #         reader.onerror = reject;
+      #         reader.readAsDataURL(blob);
+      #       });
 
-            return imageBase64;
-          }
+      #       return imageBase64;
+      #     }
 
-          return await fetchImage()
-        JS
-      end
+      #     return await fetchImage()
+      #   JS
+      # end
 
       # Takes scraped product info and creates rows in the product,
       # ingredient, product_ingredient, and product_images tables
@@ -361,10 +369,11 @@ module SephoraScraper
             source_id: @source.id
           }
         )
-        product[:ingredients].each do |ingredient|
-          db_ingredient = Ingredient[name: ingredient]
-          db_ingredient ||= Ingredient.create(name: ingredient)
+        product[:ingredients].each do |source_string, ingredient|
+          db_ingredient = Ingredient[source_string:]
+          db_ingredient ||= Ingredient.create(source_string:, name: ingredient)
 
+          # Associate ingredient with product
           db_product_ingredient = ProductIngredient[product_id: p.id, ingredient_id: db_ingredient.id]
           next if db_product_ingredient
 
@@ -374,31 +383,28 @@ module SephoraScraper
         images_path = "downloaded_images/#{p.id}-#{p.name}"
         FileUtils.mkdir_p(images_path)
 
-        product[:images].each_with_index do |image_url, _i|
-          exchange = browser.network.traffic.find { |exchange| exchange.response&.url == image_url }
+        product[:images].each do |image_url|
+          exchange = browser.network.traffic.find { |traffic_exchange| traffic_exchange.response&.url == image_url }
           next unless exchange
 
-          request = exchange&.request
-          request_id = request&.id
-          image_url = image_url.split('?').first # Remove size params, because we want the full size image
-          extension = image_url.split('?').last
+          # TODO: Try to use javascript via CDP to fetch the full size image,
+          # because Akamai Image Manager does not like being accessed directly.
+          # See documentation for #get_image_js.
+          image_url = image_url.split('?').first
           next unless image_url
 
           product_image = ProductImage[product_id: p.id, source_url: image_url]
           next if product_image
-          
-          image_binary = exchange.response.body.inspect
-          image_base64 = Base64.encode64(image_binary)
 
+          image_binary = exchange.response.body
+          extension = image_url.split('.').last
           filename = Base64.urlsafe_encode64("sephora#{[Time.now.to_f].pack('D*')}")
-          path = "tmp/#{filename}"
-          image_file = File.open(File.join(Dir.pwd, path), 'wb')
-          image_file.write(Base64.decode64(image_base64))
-          image_file.close
+          tmp_path = "tmp/#{filename}.#{extension}"
+          File.binwrite(File.join(Dir.pwd, tmp_path), image_binary)
 
-          ProductImage.create(product_id: p.id, source_url: image_url, path: path)
+          ProductImage.create(product_id: p.id, source_url: image_url, path: tmp_path)
         end
-        puts "Downloaded images and put into database."
+        puts 'Downloaded images and inserted into database.'
 
         p
       end
@@ -414,12 +420,20 @@ module SephoraScraper
         parts[starting_idx] = parts[starting_idx].gsub('1, 4, Dioxane', "1'4 Dioxane")
         # Clean up ingredients
         parts[starting_idx].split(',').map do |i|
+          original_part = i
           i = i.split('(').first
+          has_description = i.index(':')
+          i = i.split(':').first if has_description
+          has_brackets = i.index('[')
+          i = i.split('[').first if has_brackets
+          has_period = i.index('.')
+          i = i.split('.').first if has_period
           i = i.gsub(' and derivatives', '').gsub(' and related compounds', '')
           i = i.gsub(/\(((\w+)( |))*\)/, '')
           i = i.gsub('(', '').gsub(')', '')
           i = i.gsub(/(under \d%)/, '')
-          i.strip
+
+          [original_part, i.strip]
         end.uniq
       end
 

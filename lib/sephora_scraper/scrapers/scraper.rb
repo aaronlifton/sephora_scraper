@@ -20,6 +20,7 @@ module SephoraScraper
         }
       end
 
+      # Implement this in your scraper class
       def scrape
         raise 'TODO: Implement me'
       end

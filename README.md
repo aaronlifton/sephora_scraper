@@ -26,7 +26,8 @@ To install this gem onto your local machine, run `bundle exec rake install`.
 
 ## Research: Web scrapers
 
-I searched Github for web scraping or headless browser libraries for Ruby, and ultimately went with a library called "Ferrum" because it wasn't a wrapper
+I searched Github for web scraping or headless browser libraries for Ruby, and
+ultimately went with a library called "Ferrum" because it wasn't a wrapper
 around Selenium, and used CDP directly, which would allow us to run arbitrary
 JS, which should bypass fingerprint detection and allow reading of any network
 request and any element on the page. Additionally, it can run chrome in "headed"
@@ -63,10 +64,15 @@ On sephora.com, heavily obfuscated javascript files are loaded, including
 [this one](https://www.sephora.com/V2s28TSWEO64DuGwxhH252bAK20/1LXapct7uEE1/ChhnPnsWAg/S0/EWYEsSWgo),
 which contains a variable named "bmak". In the javascript console, you can call
 `bmak`, and it matches the "bmak" object that this
-[example Akamai bypass](https://github.com/infecting/akamai/blob/master/akamai_1/bypass.js) stubs. Therefore Sephora.com uses Akamai's Bot Manager. Looking at the bypass code, you can see Akamai heavily obfuscates their code, which collects a very thorough browser fingerprint.  
+[example Akamai bypass](https://github.com/infecting/akamai/blob/master/akamai_1/bypass.js)
+stubs. Therefore Sephora.com uses Akamai's Bot Manager. Looking at the bypass
+code, you can see Akamai heavily obfuscates their code, which collects a very
+thorough browser fingerprint.
 
 However, because this scraper uses a real browser, we do not need to manually
-overwrite any javascript variables loaded by the page. Bypasses can easily become outdated as the source changes, and they rely on de-obfuscation, which may not be possible in some cases.
+overwrite any javascript variables loaded by the page. Bypasses can easily
+become outdated as the source changes, and they rely on de-obfuscation, which
+may not be possible in some cases.
 
 Sephora also uses Akamai Image Manager to prevent direct access to its product
 images. We can see this in the response headers of a product image request:
@@ -87,8 +93,10 @@ images. We can see this in the response headers of a product image request:
 
 ## Proxy ideas
 
-1. We could run this "non-headless" scraper on several VPS instances
-   (Ubuntu desktops in AWS), connected to the internet via residential proxies, so they look like real user sessions. Windows S instances woulds. obably look more like real users. On a schedule, these instances would rotate proxies.
+1. We could run this "non-headless" scraper on several VPS instances (Ubuntu
+   desktops in AWS), connected to the internet via residential proxies, so they
+   look like real user sessions. Windows S instances woulds. obably look more
+   like real users. On a schedule, these instances would rotate proxies.
 2. Port the script to one that can run on android devices (Can have 100 android
    devices hooked up to SIM cards), which are behind <https://proxidize.com/>
    proxies. Can use Playwright to automate android browsers.
@@ -96,9 +104,15 @@ images. We can see this in the response headers of a product image request:
 ## Further ideas
 
 - Set `window.localStorage` so that `isFirstTimeChatMarketingMsg` is false,
-  which might disable the chat popup. Try to disable login/signup modals by setting cookies oor values in local storage.  
-- Use residential proxies to appear more like real users. For ewxmaple, it's possible EC2 server IP addresses are recognizable.
-- Expand random user inpuits to include random scrolling and smooth/rounded mouse moves using animation formulas rather than just moving the mouse up, down, left, and right.
-- Use random server locations or randomize and mock locations 
-- Test if [Playwright](https://playwright.dev/) would make the code any simpler (it also supports CDP)
-- Consider headless-chrome, now that is [apparently undetectable](https://antoinevastel.com/bot%20detection/2023/02/19/new-headless-chrome.html)
+  which might disable the chat popup. Try to disable login/signup modals by
+  setting cookies oor values in local storage.
+- Use residential proxies to appear more like real users. For ewxmaple, it's
+  possible EC2 server IP addresses are recognizable.
+- Expand random user inpuits to include random scrolling and smooth/rounded
+  mouse moves using animation formulas rather than just moving the mouse up,
+  down, left, and right.
+- Use random server locations or randomize and mock locations
+- Test if [Playwright](https://playwright.dev/) would make the code any simpler
+  (it also supports CDP)
+- Consider headless-chrome, now that is
+  [apparently undetectable](https://antoinevastel.com/bot%20detection/2023/02/19/new-headless-chrome.html)

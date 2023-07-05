@@ -37,6 +37,7 @@ module SephoraScraper
     db_schema do
       primary_key :id
       String :name
+      String :source_string
       one_to_many :products
       many_to_one :product_ingredients
     end

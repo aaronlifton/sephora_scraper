@@ -26,15 +26,12 @@ module SephoraScraper
       @db = Sequel.connect(DATABASE_URL)
       # For testing purposes
       if reset_db
-        db.drop_table(:product_ingredients) if db.tables.include?(:product_ingredients)
-        db.drop_table(:product_images) if db.tables.include?(:product_images)
-        db.drop_table(:products) if db.tables.include?(:products)
-        db.drop_table(:brands) if db.tables.include?(:brands)
-        db.drop_table(:sources) if db.tables.include?(:sources)
-        db.drop_table(:ingredients) if db.tables.include?(:ingredients)
-        db.drop_table(:settings) if db.tables.include?(:settings)
+        %i[product_ingredients product_images products brands sources ingredients settings].each do |table_name|
+          db.drop_table(table_name) if db.tables.include?(table_name)
+        end
       end
 
+      # Make sure tables are created on first run
       unless db.tables.include?(:brands)
         db.create_table(:brands) do
           primary_key :id
@@ -63,6 +60,7 @@ module SephoraScraper
         db.create_table(:ingredients) do
           primary_key :id
           String :name
+          String :source_string
         end
       end
 

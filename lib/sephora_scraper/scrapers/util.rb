@@ -6,7 +6,11 @@ module SephoraScraper
           @settings ||= Setting.last
         end
 
-        # See https://antoinevastel.com/bot%20detection/2023/02/19/new-headless-chrome.html#:~:text=Does%20it%20mean%20it%20has%20become%20impossible%20to%20detect%20the%20new%20Headless%20Chrome%3F
+        # If the script errors out, we store the error message in the settings
+        # table. By also storing browser fingerprints in the settings table, we
+        # can determine which fingerprints lead to unsuccessfl scraping
+        # attempts.
+        #
         # def get_fingerprint(browser)
         #   browser_plugins = browser.evaluate <<~JS
         #    window.getFingerprint() // some function that returns a browser fingerprint object as a json string
@@ -47,28 +51,37 @@ module SephoraScraper
           puts "Pressed #{key}"
         end
 
-        # Not tested. My idea to defeat captchas was to use a paid service.
-        # Alternatively, I've always considered using Amazon's MechanicalTurk
-        # API to defeat captchas. One idea, that could potentially solve any
-        # captcha, is to send a screenshot of the page to an API running a
-        # homegrown AI/Tensorflow-based captcha solver.
-        def solve_captcha(_browser)
+        # Just an idea, and not tested. My idea to defeat captchas is to use a
+        # paid service. Alternatively, I've always considered using Amazon's
+        # MechanicalTurk API to defeat captchas. If an AI-based solver exists,
+        # use CDP to take a screenshot of the captcha and on the server send it
+        # to an API running a Tensorflow-based captcha solver.
+        def solve_captcha(browser)
           require 'api-2captcha'
-
           client = Api2Captcha.new('YOUR_API_KEY')
-          result = client.normal({ image: 'https://site-with-captcha.com/path/to/captcha.jpg' })
-          result = client.recaptcha_v2({
-                                         googlekey: '6Le-wvkSVVABCPBMRTvw0Q4Muexq1bi0DJwx_mJ-',
-                                         pageurl: 'https://mysite.com/page/with/recaptcha_v2',
-                                         invisible: 1
-                                       })
-          result = client.recaptcha_v3({
-                                         googlekey: '6Le-wvkSVVABCPBMRTvw0Q4Muexq1bi0DJwx_mJ-',
-                                         pageurl: 'https://mysite.com/page/with/recaptcha_v3',
-                                         version: 'v3',
-                                         score: 0.3,
-                                         action: 'verify'
-                                       })
+          image = browser.screenshot(path: 'captcha.png')
+          captcha_type = :recaptcha_v2
+          result =
+            case captcha_type
+            when :normal
+              client.normal({ image: 'captcha.jpg' })
+            when :recaptcha_v2
+              client.recaptcha_v2({
+                                    googlekey: '6Le-wvkSVVABCPBMRTvw0Q4Muexq1bi0DJwx_mJ-',
+                                    pageurl: 'https://mysite.com/page/with/recaptcha_v2',
+                                    invisible: 1
+                                  })
+            when :recaptcha_v3
+              client.recaptcha_v3({
+                                    googlekey: '6Le-wvkSVVABCPBMRTvw0Q4Muexq1bi0DJwx_mJ-',
+                                    pageurl: 'https://mysite.com/page/with/recaptcha_v3',
+                                    version: 'v3',
+                                    score: 0.3,
+                                    action: 'verify'
+                                  })
+            else
+              raise "Unknown captcha type: #{captcha_type}"
+            end
         end
 
         def user_agent
