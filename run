@@ -1,0 +1,17 @@
+#!/bin/bash
+
+which rbenv | grep -o rbenv >/dev/null && echo 0 >/dev/null ||
+  echo "Could not find rbenv. Please install it, or modify this script so that it points to the right Ruby version."
+
+rbenv versions | grep "$(cat .ruby-version)" >/dev/null && echo 0 >/dev/null ||
+  echo "Could not find Ruby version $(cat .ruby-version). Installing..." && rbenv install -s
+
+rbenv version local | grep "$(cat .ruby-version)" >/dev/null && echo 0 >/dev/null ||
+  echo "Setting local Ruby version to $(cat .ruby-version)..." && rbenv local $(cat .ruby-version)
+
+if ! [ -f ".bundle" ]; then
+  bundle
+
+fi
+
+./bin/scraper

@@ -1,12 +1,12 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require "bundler/setup"
-require "newness_scraper"
+require 'bundler/setup'
+require 'sephora_scraper'
 
 # (If you use this, don't forget to add pry to your Gemfile!)
 # require "pry"
 # Pry.start
 
-runner = NewnessScraper::Runner.new
+runner = SephoraScraper::Runner.new
 runner.scrape

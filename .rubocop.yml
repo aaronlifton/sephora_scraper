@@ -1,16 +1,56 @@
 AllCops:
-  TargetRubyVersion: 2.6
+  NewCops: enable
+  Exclude:
+    - 'downloaded_images/**/*'
+    - 'tmp/**/*'
+    - '.git/**/*'
+  TargetRubyVersion: 3.2
+  SuggestExtensions: false
 
-Style/StringLiterals:
-  Enabled: true
-  EnforcedStyle: double_quotes
+Layout/EndOfLine:
+  EnforcedStyle: lf
 
-Style/StringLiteralsInInterpolation:
+Layout/ClassStructure:
   Enabled: true
-  EnforcedStyle: double_quotes
+
+Layout/RedundantLineBreak:
+  InspectBlocks: true
+  Enabled: true
+
+Lint/AmbiguousBlockAssociation:
+  Exclude:
+    - 'spec/**/*.rb'
+
+Layout/HashAlignment:
+  EnforcedHashRocketStyle:
+    - key
+    - table
+  EnforcedColonStyle:
+    - key
+    - table
 
 Layout/LineLength:
   Max: 120
 
-Style/FrozenStringLiteralComment:
+Metrics/MethodLength:
+  Max: 30
+
+Metrics/BlockLength:
+  Exclude:
+    - 'Rakefile'
+    - '**/*.rake'
+    - 'spec/**/*.rb'
+    - '**/*.gemspec'
+
+Metrics/ModuleLength:
+  Exclude:
+    - 'spec/**/*.rb'
+
+Gemspec/DependencyVersion:
+  Enabled: true
+
+Style/RequireOrder:
+  Enabled: true
+
+Style/Documentation:
   Enabled: false
