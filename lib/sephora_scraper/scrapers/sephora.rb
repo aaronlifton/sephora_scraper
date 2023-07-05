@@ -266,7 +266,7 @@ module SephoraScraper
         end
         process_thread.join
         close_modal_thread.join
-        timeout_thread.killaaaaaaaaaaaaa
+        timeout_thread.kill
 
         return_value
       end
@@ -428,6 +428,9 @@ module SephoraScraper
           i = i.split('[').first if has_brackets
           has_period = i.index('.')
           i = i.split('.').first if has_period
+          i = i[1..] if i[0] == '-'
+          i = i.gsub('<', '').gsub('>', '')
+          i = i.gsub('&amp;', '&')
           i = i.gsub(' and derivatives', '').gsub(' and related compounds', '')
           i = i.gsub(/\(((\w+)( |))*\)/, '')
           i = i.gsub('(', '').gsub(')', '')
