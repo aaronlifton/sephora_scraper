@@ -95,8 +95,9 @@ images. We can see this in the response headers of a product image request:
 
 1. We could run this "non-headless" scraper on several VPS instances (Ubuntu
    desktops in AWS), connected to the internet via residential proxies, so they
-   look like real user sessions. Windows S instances woulds. obably look more
-   like real users. On a schedule, these instances would rotate proxies.
+   look like real user sessions. Windows instances would probably look more like
+   real users because more users use Windows than Linux. On a schedule, these
+   instances would rotate proxies.
 2. Port the script to one that can run on android devices (Can have 100 android
    devices hooked up to SIM cards), which are behind <https://proxidize.com/>
    proxies. Can use Playwright to automate android browsers.
