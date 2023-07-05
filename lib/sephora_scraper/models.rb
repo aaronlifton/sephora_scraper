@@ -2,7 +2,7 @@
 
 require 'sequel'
 
-Sequel.connect('sqlite://newness.db')
+Sequel.connect('sqlite://sephora.db')
 
 module SephoraScraper
   class Brand < Sequel::Model

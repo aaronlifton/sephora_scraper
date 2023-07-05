@@ -6,6 +6,9 @@
 /pkg/
 /spec/reports/
 /tmp/
+/downloaded_images/**/*
+/downloaded_images/.DS_Store
+.DS_Store
 
 # rspec failure tracking
 .rspec_status

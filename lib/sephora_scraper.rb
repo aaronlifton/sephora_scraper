@@ -9,7 +9,7 @@ module SephoraScraper
   class Runner
     attr_accessor :db
 
-    DATABASE_URL = 'sqlite://newness.db'
+    DATABASE_URL = 'sqlite://sephora.db'
     class Error < StandardError; end
 
     def scrape
