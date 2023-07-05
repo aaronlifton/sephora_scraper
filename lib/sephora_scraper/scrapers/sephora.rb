@@ -194,21 +194,25 @@ module SephoraScraper
           document = Nokogiri::HTML(browser.body)
 
           # Get ingredients
-          accordian = browser.at_xpath('//h2[contains(text(), "Ingredients")]')
-          accordian_nokogiri = document.at_xpath('//h2[contains(text(), "Ingredients")]')
-          if accordian
-            accordian.click
-            ingredients_html = accordian_nokogiri.parent.next_sibling.children.first.inner_html
-            ingredients_string = ingredients_html.gsub('<div>', '').gsub('</div>', '')
-            ingredients_string = ingredients_string.gsub('<b>', '').gsub('</b>', '')
-            parts = ingredients_string.split('<br>')
-            parts.each do |part|
-              break unless part.strip[0] == '-'
+          begin
+            accordian = browser.at_xpath('//h2[contains(text(), "Ingredients")]')
+            accordian_nokogiri = document.at_xpath('//h2[contains(text(), "Ingredients")]')
+            if accordian
+              accordian.click
+              ingredients_html = accordian_nokogiri.parent.next_sibling.children.first.inner_html
+              ingredients_string = ingredients_html.gsub('<div>', '').gsub('</div>', '')
+              ingredients_string = ingredients_string.gsub('<b>', '').gsub('</b>', '')
+              parts = ingredients_string.split('<br>')
+              parts.each do |part|
+                break unless part.strip[0] == '-'
 
-              product[:ingredients] << part[1..].split(':').first
+                product[:ingredients] << part[1..].split(':').first
+              end
+              full_ingredients = cleanup_ingredient_parts(parts)
+              product[:ingredients] += full_ingredients
             end
-            full_ingredients = cleanup_ingredient_parts(parts)
-            product[:ingredients] += full_ingredients
+          rescue Ferrum::NodeNotFoundError => e
+            puts e
           end
 
           next if Product[name: product[:name], source_id: @source.id]
@@ -369,9 +373,9 @@ module SephoraScraper
             source_id: @source.id
           }
         )
-        product[:ingredients].each do |source_string, ingredient|
-          db_ingredient = Ingredient[source_string:]
-          db_ingredient ||= Ingredient.create(source_string:, name: ingredient)
+        product[:ingredients].each do |source_string_, ingredient_|
+          db_ingredient = Ingredient[source_string: source_string_]
+          db_ingredient ||= Ingredient.create(source_string: source_string_, name: ingredient_)
 
           # Associate ingredient with product
           db_product_ingredient = ProductIngredient[product_id: p.id, ingredient_id: db_ingredient.id]
