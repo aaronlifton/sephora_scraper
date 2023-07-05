@@ -178,9 +178,10 @@ module SephoraScraper
           document = Nokogiri::HTML(browser.body)
           # Sephora has an extra space in the data attribute here
           carousel = document.at_css("[data-comp='Carousel ']")
-          product[:images] = carousel.css('button').map do |button|
+          # On a rare occasion, carousel is nil
+          product[:images] = carousel ? carousel.css('button').map do |button|
             button.child.child.child.attribute('src')&.value
-          end.compact
+          end.compact : []
           # Arbitrary sleep
           Util.random_mouse_move(browser)
           sleep 1
