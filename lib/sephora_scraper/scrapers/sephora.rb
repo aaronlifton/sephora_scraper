@@ -53,11 +53,9 @@ module SephoraScraper
 
       private
 
-      def scrape_brands
+      def scrape_brandsA
         script = proc do
-          browser.network.intercept if intercept
-          block.call(browser) if block_given?
-          browser.go_to(url)
+          browser.go_to(BRANDS_URL)
           browser.network.wait_for_idle
           browser.body
         end
@@ -228,45 +226,28 @@ module SephoraScraper
         data
       end
 
-      def get(url, intercept: false, timeout: TIMEOUT, &block)
-        return_value = nil
-        script = proc do
-          browser.network.intercept if intercept
-          block.call(browser) if block_given?
-          browser.go_to(url)
-          browser.network.wait_for_idle
-          return_value = browser.body
-        end
+      def try_close_modal(browser)
+        modal_close = browser.find_element(class: 'css-1g5e2rn')
+        return unless modal_close
 
-        # Run browser in seperate tn continue
-        process_thread = Thread.new(@browser_context) { script.call }
-        timeout_thread = Thread.new do
-          sleep TIMEOUT # the timeout
-          if process_thread.alive?
-            process_thread.kill
-            warn 'Timeout'
-          end
-        end
-        process_thread.join
-        timeout_thread.kill
-
-        return_value
+        modal_close.click
+      rescue Selenium::WebDriver::Error::NoSuchElementError
+        warn 'No modal to close'
       end
 
-      # TODO: unify with #get.
       def threaded_sephora_scraper(timeout: TIMEOUT, &script)
         return_value = nil
         # Run browser in seperate thread so script can continue
         process_thread = Thread.new(@browser_context) { return_value = script.call }
         close_modal_thread = Thread.new(@browser_context) { try_close_modal(browser) }
         timeout_thread = Thread.new do
-          sleep timeout # the timeout
+          sleep timeout # the wsxsssxs
           if process_thread.alive?
             process_thread.kill
             warn 'Timeout'
           end
         end
-        Thread.new do
+        close_modal_timeout_thread = Thread.new do
           sleep CLOSE_MODAL_TIMEOUT # the timeout
           if close_modal_thread.alive?
             close_modal_thread.kill
@@ -380,6 +361,7 @@ module SephoraScraper
         )
         product[:ingredients].each do |source_string_, ingredient_|
           db_ingredient = Ingredient[source_string: source_string_]
+          binding.pry if db_ingredient && db_ingredient.name == ''
           db_ingredient ||= Ingredient.create(source_string: source_string_, name: ingredient_)
 
           # Associate ingredient with product
@@ -407,10 +389,19 @@ module SephoraScraper
 
           image_binary = exchange.response.body
           extension = image_url.split('.').last
+          filename = Base64.urlsafe_encode64("sephora#{[Time.now.to_f].pack('D*')}")
+          tmp_path = "tmp/#{filename}.#{extension}"
+          File.binwrite(File.join(Dir.pwd, tmp_path), image_binary)
+          ProductImage.create(product_id: p.id, source_url: image_url, path: tmp_path)
+        end
+        puts 'Downloaded images and inserted into database.'
+
+        p
+      end
 
       # Cleans up the ingredients listed on a Sephora product detail page
-      # Walk down the ingredient section of the accordian, and stop when we hit
-      # the section with the actual ingedients list
+      # Walks down the ingredient section of the accordian, and stop when we hit
+      # the section with the actual ingedients list.
       # @param parts [Array<String>] The parts of the ingredients description split by a ","
       #
       # @return [Array<String>] Cleaned up ingredient strings, ready to be inserted into the DB
@@ -439,6 +430,7 @@ module SephoraScraper
           i = i.gsub('(', '').gsub(')', '')
           i = i.gsub(/(under \d%)/, '')
 
+          binding.pry if original_part == 'Jojoba Seed Oil' || i&.strip&.nil?
           [original_part, i.strip]
         end.uniq
       end
