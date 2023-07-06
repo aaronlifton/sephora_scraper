@@ -53,7 +53,7 @@ module SephoraScraper
 
       private
 
-      def scrape_brandsA
+      def scrape_brands
         script = proc do
           browser.go_to(BRANDS_URL)
           browser.network.wait_for_idle
@@ -147,7 +147,7 @@ module SephoraScraper
           document.css(TILES_CSS).to_a
         end
         if tiles.none?
-          put 'No tiles found, refreshing and trying again...'
+          puts 'No tiles found, refreshing and trying again...'
           browser.refresh
           browser.network.wait_for_idle
           try_close_modal(browser)
