@@ -206,12 +206,14 @@ module SephoraScraper
               ingredients_string = ingredients_html.gsub('<div>', '').gsub('</div>', '')
               ingredients_string = ingredients_string.gsub('<b>', '').gsub('</b>', '')
               parts = ingredients_string.split('<br>')
+              top_level_ingredients = []
               parts.each do |part|
                 break unless part.strip[0] == '-'
 
-                product[:ingredients] << part[1..].split(':').first
+                ingredient_name = part[1..].split(':').first
+                top_level_ingredients << [ingredient_name, ingredient_name]
               end
-              full_ingredients = cleanup_ingredient_parts(parts)
+              full_ingredients = cleanup_ingredient_parts(top_level_ingredients + parts)
               product[:ingredients] += full_ingredients
             end
           rescue Ferrum::NodeNotFoundError => e
