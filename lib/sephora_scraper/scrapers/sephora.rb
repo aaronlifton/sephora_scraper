@@ -361,7 +361,6 @@ module SephoraScraper
         )
         product[:ingredients].each do |source_string_, ingredient_|
           db_ingredient = Ingredient[source_string: source_string_]
-          binding.pry if db_ingredient && db_ingredient.name == ''
           db_ingredient ||= Ingredient.create(source_string: source_string_, name: ingredient_)
 
           # Associate ingredient with product
