@@ -211,7 +211,7 @@ module SephoraScraper
                 break unless part.strip[0] == '-'
 
                 ingredient_name = part[1..].split(':').first
-                top_level_ingredients << [ingredient_name, ingredient_name]
+                top_level_ingredients << ingredient_name
               end
               full_ingredients = cleanup_ingredient_parts(top_level_ingredients + parts)
               product[:ingredients] += full_ingredients
