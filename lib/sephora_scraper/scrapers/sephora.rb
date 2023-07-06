@@ -22,6 +22,7 @@ module SephoraScraper
       BRANDS_URL = 'https://www.sephora.com/brands-list'
       MAKEUP_URL = 'https://www.sephora.com/shop/makeup-cosmetics'
       TIMEOUT = 60
+      CLOSE_MODAL_TIMEOUT = 14
       # Sephora HTML has an extra space in the data attribute here
       TILES_CSS = "[data-comp='LazyLoad ProductTile ']"
 
@@ -53,7 +54,14 @@ module SephoraScraper
       private
 
       def scrape_brands
-        brands_body = get(BRANDS_URL, timeout: 20)
+        script = proc do
+          browser.network.intercept if intercept
+          block.call(browser) if block_given?
+          browser.go_to(url)
+          browser.network.wait_for_idle
+          browser.body
+        end
+        brands_body = threaded_sephora_scraper(timeout: 20, &script)
         document = Nokogiri::HTML(brands_body)
         links = document.css("[data-at='brand_link']").to_enum
         brands = links.take(links.count).map { |link| link.children.first.text }
@@ -77,8 +85,6 @@ module SephoraScraper
         script = proc do
           browser = instance_eval { @browser }
           browser.go_to(MAKEUP_URL)
-          # Wait 9 seconds for all network requests to finish
-          # browser.network.wait_for_idle(timeout: 25)
           # Enter some user input so the signup modal is triggered
           Util.press_key(browser, 'a')
           Util.press_key(browser, :enter)
@@ -89,7 +95,6 @@ module SephoraScraper
           Util.press_key(browser, :escape)
           # At this point the modal should be closed. This part has been a bit tricky to automate.
           browser.mouse.scroll_to(0, 0)
-          # @makeup_body = browser.body
           height = browser.evaluate <<~JS
             Math.max(document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight)
           JS
@@ -143,8 +148,8 @@ module SephoraScraper
 
           document.css(TILES_CSS).to_a
         end
-        # Can delete this?
         if tiles.none?
+          put 'No tiles found, refreshing and trying again...'
           browser.refresh
           browser.network.wait_for_idle
           try_close_modal(browser)
@@ -249,20 +254,20 @@ module SephoraScraper
       end
 
       # TODO: unify with #get.
-      def threaded_sephora_scraper(&script)
+      def threaded_sephora_scraper(timeout: TIMEOUT, &script)
         return_value = nil
         # Run browser in seperate thread so script can continue
         process_thread = Thread.new(@browser_context) { return_value = script.call }
         close_modal_thread = Thread.new(@browser_context) { try_close_modal(browser) }
         timeout_thread = Thread.new do
-          sleep TIMEOUT # the timeout
+          sleep timeout # the timeout
           if process_thread.alive?
             process_thread.kill
             warn 'Timeout'
           end
         end
-        close_modal_timeout_thread = Thread.new do
-          sleep 14 # the timeout
+        Thread.new do
+          sleep CLOSE_MODAL_TIMEOUT # the timeout
           if close_modal_thread.alive?
             close_modal_thread.kill
             warn 'Killed the CloseModal thread'
@@ -393,7 +398,7 @@ module SephoraScraper
 
           # TODO: Try to use javascript via CDP to fetch the full size image,
           # because Akamai Image Manager does not like being accessed directly.
-          # See documentation for #get_image_js.
+          # See documentation for #get_image_js above.
           image_url = image_url.split('?').first
           next unless image_url
 
@@ -402,18 +407,10 @@ module SephoraScraper
 
           image_binary = exchange.response.body
           extension = image_url.split('.').last
-          filename = Base64.urlsafe_encode64("sephora#{[Time.now.to_f].pack('D*')}")
-          tmp_path = "tmp/#{filename}.#{extension}"
-          File.binwrite(File.join(Dir.pwd, tmp_path), image_binary)
-
-          ProductImage.create(product_id: p.id, source_url: image_url, path: tmp_path)
-        end
-        puts 'Downloaded images and inserted into database.'
-
-        p
-      end
 
       # Cleans up the ingredients listed on a Sephora product detail page
+      # Walk down the ingredient section of the accordian, and stop when we hit
+      # the section with the actual ingedients list
       # @param parts [Array<String>] The parts of the ingredients description split by a ","
       #
       # @return [Array<String>] Cleaned up ingredient strings, ready to be inserted into the DB
@@ -421,6 +418,8 @@ module SephoraScraper
         # Some products have a "Clean at Sephora" section, which we want to ignore
         idx = parts.find_index { |part| part.include?('Clean at Sephora') }
         starting_idx = idx ? idx + 1 : 0
+        # 1,4-Dioxane has different spellings, and we are relying on each
+        # ingredient not having any commas, so replace the comma.
         parts[starting_idx] = parts[starting_idx].gsub('1, 4, Dioxane', "1'4 Dioxane")
         # Clean up ingredients
         parts[starting_idx].split(',').map do |i|
