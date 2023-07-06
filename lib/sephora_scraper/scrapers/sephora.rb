@@ -429,7 +429,6 @@ module SephoraScraper
           i = i.gsub('(', '').gsub(')', '')
           i = i.gsub(/(under \d%)/, '')
 
-          binding.pry if original_part == 'Jojoba Seed Oil' || i&.strip&.nil?
           [original_part, i.strip]
         end.uniq
       end
