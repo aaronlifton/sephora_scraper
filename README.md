@@ -117,3 +117,9 @@ images. We can see this in the response headers of a product image request:
   (it also supports CDP)
 - Consider headless-chrome, now that is
   [apparently undetectable](https://antoinevastel.com/bot%20detection/2023/02/19/new-headless-chrome.html)
+
+
+## Screenshots
+
+Ingredients table
+<img width="1296" alt="image" src="https://github.com/aaronlifton/sephora_scraper/assets/21133757/f1268ab7-4ecd-4933-b454-d7c3a89431be">
