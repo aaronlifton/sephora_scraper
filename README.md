@@ -91,6 +91,11 @@ images. We can see this in the response headers of a product image request:
 }
 ```
 
+If you try accessing an image URL directly via CURL, you are met with an "Access
+Denied" message, similar to when you access `https://www.sephora.com` via CURL.
+If you are using a web browser, and you have visited sephora.com, you should
+have the right cookies to access the image URL directly.
+
 ## Proxy ideas
 
 1. We could run this "non-headless" scraper on several VPS instances (Ubuntu
@@ -117,7 +122,6 @@ images. We can see this in the response headers of a product image request:
   (it also supports CDP)
 - Consider headless-chrome, now that is
   [apparently undetectable](https://antoinevastel.com/bot%20detection/2023/02/19/new-headless-chrome.html)
-
 
 ## Screenshots
 
