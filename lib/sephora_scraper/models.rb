@@ -55,19 +55,19 @@ module SephoraScraper
     db_schema do
       primary_key :id
       String :source_url
-      String :pathß
+      String :path
       one_to_many :products
     end
   end
 
-  # Setting helps us keep track of the user agent and proxy we are using to
-  # scrape the product data, each session
+  # Settings helps us keep track of the user agent and proxy we are using to
+  # scrape the product data, so that we can associate errors with certain
+  # settings and avoid them in the future.
   class Setting < Sequel::Model
     db_schema do
       primary_key :id
       Integer :user_agent_index
       Integer :proxy_index
-      text :fingerprint
     end
   end
 end
