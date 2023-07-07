@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
 require 'sequel'
-
-Sequel.connect('sqlite://sephora.db')
-
 module SephoraScraper
   class Brand < Sequel::Model
     db_schema do
