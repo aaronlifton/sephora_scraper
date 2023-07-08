@@ -122,6 +122,7 @@ have the right cookies to access the image URL directly.
   (it also supports CDP)
 - Consider headless-chrome, now that is
   [apparently undetectable](https://antoinevastel.com/bot%20detection/2023/02/19/new-headless-chrome.html)
+- To scrape more difficult URLs, I read that TLS and HTTP/2 fingerprints could be mocked using low-level APIs ([source](https://www.zenrows.com/blog/bypass-cloudflare#diy-cloudflare-bypass:~:text=You%27ll%20need%20to%20capture%20and%20analyze%20packets%20from%20the%20browsers%20you%20intend%20to%20impersonate.%20Your%20selection%20of%20programming%20languages%20is%20limited.%20It%20must%20have%20enough%20low%2Dlevel%20access%20to%20control%20all%20the%20components%20to%20Cloudflare%27s%20TLS%20and%20HTTP/2%20fingerprinting%20specification%2C%20so%20you%20can%20match%20a%20browser%201%3A1.))
 
 ## Screenshots
 
