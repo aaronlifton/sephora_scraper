@@ -31,24 +31,24 @@ ultimately went with a library called "Ferrum" because it wasn't a wrapper
 around Selenium, and used CDP directly, which would allow us to run arbitrary
 JS, which should bypass fingerprint detection and allow reading of any network
 request and any element on the page. Additionally, it can run chrome in "headed"
-mode, which would prevent bot detection because an actual browser has an actual
-fingerprint - there are no stubbed javascript values or headers. For example,
-`navigator.webdriver` will always return false, there will be an actual screen
-resolution, a real user agent (we may not want to overwrite the user agent
-header with a headed browser, since that may trigger an abnormal fingerprint
-that doesn't match the browser. Headers should all match those of a real user,
-and if specific URLs are to be visited directly, we must set the "Referrer"
-header to the previous page so it mimics user behavior. If we really wanted to
-have a variable fingerprint, we could rotate the version of chrome that Ferrum
-uses. Even better, we could try rotating browsers. If we have a legitimate
-fingerprint, we should then focus on javascript-based bot detection. To defeat
-this detection we could emulate real user mouse/keyboard behavior, send random
-inputs, and use different browser window sizes. Bot/scraper detectors try to
-determine if user behavior is "human" or not: for example, a scraper may lack
-the "random" mouse movements that we sometimes make when reading a website, or
-it may interact with elements on a page too quickly and too rigidly, or it may
-scroll down too fast. Essentially we would want the scraping to send different
-data to the bot detection code each time.
+(non-headless?) mode, which would prevent bot detection because an actual
+browser has an actual fingerprint - there are no stubbed javascript values or
+headers. For example, `navigator.webdriver` will always return false, there will
+be an actual screen resolution, a real user agent (we may not want to overwrite
+the user agent header with a headed browser, since that may trigger an abnormal
+fingerprint that doesn't match the browser. Headers should all match those of a
+real user, and if specific URLs are to be visited directly, we must set the
+"Referrer" header to the previous page so it mimics user behavior. If we really
+wanted to have a variable fingerprint, we could rotate the version of chrome
+that Ferrum uses. Even better, we could try rotating browsers. If we have a
+legitimate fingerprint, we should then focus on javascript-based bot detection.
+To defeat this detection we could emulate real user mouse/keyboard behavior,
+send random inputs, and use different browser window sizes. Bot/scraper
+detectors try to determine if user behavior is "human" or not: for example, a
+scraper may lack the "random" mouse movements that we sometimes make when
+reading a website, or it may interact with elements on a page too quickly and
+too rigidly, or it may scroll down too fast. Essentially we would want the
+scraping to send different data to the bot detection code each time.
 
 ### 2. Research: Browser fingerprinting
 
@@ -122,7 +122,9 @@ have the right cookies to access the image URL directly.
   (it also supports CDP)
 - Consider headless-chrome, now that is
   [apparently undetectable](https://antoinevastel.com/bot%20detection/2023/02/19/new-headless-chrome.html)
-- To scrape more difficult URLs, I read that TLS and HTTP/2 fingerprints could be mocked using low-level APIs ([source](https://www.zenrows.com/blog/bypass-cloudflare#diy-cloudflare-bypass:~:text=You%27ll%20need%20to%20capture%20and%20analyze%20packets%20from%20the%20browsers%20you%20intend%20to%20impersonate.%20Your%20selection%20of%20programming%20languages%20is%20limited.%20It%20must%20have%20enough%20low%2Dlevel%20access%20to%20control%20all%20the%20components%20to%20Cloudflare%27s%20TLS%20and%20HTTP/2%20fingerprinting%20specification%2C%20so%20you%20can%20match%20a%20browser%201%3A1.))
+- To scrape more difficult URLs, I read that TLS and HTTP/2 fingerprints could
+  be mocked using low-level APIs
+  ([source](https://www.zenrows.com/blog/bypass-cloudflare#diy-cloudflare-bypass:~:text=You%27ll%20need%20to%20capture%20and%20analyze%20packets%20from%20the%20browsers%20you%20intend%20to%20impersonate.%20Your%20selection%20of%20programming%20languages%20is%20limited.%20It%20must%20have%20enough%20low%2Dlevel%20access%20to%20control%20all%20the%20components%20to%20Cloudflare%27s%20TLS%20and%20HTTP/2%20fingerprinting%20specification%2C%20so%20you%20can%20match%20a%20browser%201%3A1.))
 
 ## Screenshots
 
