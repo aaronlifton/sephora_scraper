@@ -132,8 +132,8 @@ module SephoraScraper
         try_close_modal(browser)
 
         products = data_from_product_tiles(product_tiles)
-        final_makeup_category_url = browser.current_url
-        products = merge_with_data_from_detail_page(final_makeup_category_url, products, browser)
+        current_url = browser.current_url
+        products = merge_with_data_from_detail_page(current_url, products, browser)
 
         puts "Created\t#{products.length} products\n\t#{Ingredient.count} ingredients\n\t#{ProductIngredient.count} " \
              "product ingredient relationships\n\t#{Brand.count} brands"
@@ -161,22 +161,21 @@ module SephoraScraper
         tiles
       end
 
-      # Visits a product's page and collects ingredients and images
+      # Merges scraped product info with scraped ingredients and images
       #
       # @param data [Array<Hash>] data collected from index page
       # @param browser [Ferrum::Browser] instance of the ferrum browser
       # @return [Array<Hash>] full product data
-      def merge_with_data_from_detail_page(final_makeup_category_url, data, browser)
+      def merge_with_data_from_detail_page(current_url, data, browser)
         data.each do |product|
           url = product[:link][0] == '/' ? "#{BASE_URL}#{product[:link]}" : product[:link]
-          browser.headers.add({ 'Referer' => final_makeup_category_url })
+          browser.headers.add({ 'Referer' => current_url })
           browser.go_to(url)
           puts "Visited #{url}"
           product[:ingredients] = []
           product[:images] = []
-          # Arbitrary sleep
           Util.random_mouse_move(browser)
-          sleep 1
+          sleep 1 # Static sleep
           try_close_modal(browser)
           document = Nokogiri::HTML(browser.body)
           # Sephora has an extra space in the data attribute here
@@ -188,7 +187,6 @@ module SephoraScraper
             else
               []
             end
-          # Arbitrary sleep
           Util.random_mouse_move(browser)
           sleep 1
           # Scroll to ingredients accordian section
@@ -415,7 +413,7 @@ module SephoraScraper
         parts[starting_idx] = parts[starting_idx].gsub('1, 4, Dioxane', "1'4 Dioxane")
         # Clean up ingredients
         parts[starting_idx].split(',').map do |i|
-          original_part = i
+          original_string = i
           i = i.split('(').first
           has_description = i.index(':')
           i = i.split(':').first if has_description
@@ -431,7 +429,7 @@ module SephoraScraper
           i = i.gsub('(', '').gsub(')', '')
           i = i.gsub(/(under \d%)/, '')
 
-          [original_part, i.strip]
+          [original_string, i.strip]
         end.uniq
       end
 
